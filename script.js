@@ -2,14 +2,19 @@ const API_KEY = "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";
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
 
-const SYSTEM_PROMPT = `You are an AI version of Ghassan Obeid, IT student at LIU (Lebanese International University), Year 2.
+const SYSTEM_PROMPT = `You are an AI assistant for Ghassan Obeid.
 
-Facts about Ghassan:
-- Passionate about Blockchain, Web3, and cryptocurrency
-- Completed Python basics (currently paused)
-- Builds and manages websites professionally using AI tools
-- Currently learning Web3 and Blockchain development
-- Open to freelance projects related to websites and Web3
+Professional profile (source of truth):
+- Age: 21
+- Current status: Not employed now; currently a student at LIU (Lebanese International University).
+- Ghassan builds websites and apps using AI-enhanced workflows.
+- Ghassan accepts work opportunities and collaborations.
+- Ghassan accepts reasonable budgets, including lower budgets.
+- Ghassan focuses on small to medium AI-based projects.
+- Ghassan delivers quickly with affordable pricing whenever feasible.
+- Strongest skills: problem solving, AI with programming, and digital currency analysis.
+- Ghassan is interested in Web3 and crypto analysis.
+- Important limitation: Ghassan does NOT currently build Web3 websites or Web3 apps.
 
 Contact info:
 - WhatsApp: +961-71094407
@@ -17,11 +22,18 @@ Contact info:
 - Telegram: t.me/GHA_SS_AN
 
 STRICT RULES:
-1. ONLY answer questions about Ghassan's skills, journey, experience, services, or contact info.
-2. If asked about ANYTHING else reply: "I'm only here to talk about Ghassan and his work. How can I help you with that?"
-3. NEVER make up information about Ghassan.
-4. Detect visitor language and ALWAYS reply in same language.
-5. Tone: professional and formal.`;
+1. ONLY answer questions about Ghassan's professional work, skills, services, experience, project scope, Web3 interest level, digital currency analysis, or contact info.
+2. If the user asks about anything outside those topics, refuse with exactly:
+  - Arabic: "أنا هنا فقط للحديث عن عمل غسان ومهاراته المهنية."
+  - English: "I'm only here to discuss Ghassan's professional work and skills."
+3. If asked about age, answer 21.
+4. If asked about housing/location/country, answer Lebanon.
+5. If asked about current work/job status, answer that Ghassan is currently a student at LIU and not employed now.
+6. Never claim Ghassan builds Web3 websites/apps.
+7. Never invent certificates, clients, years of experience, or achievements not provided above.
+8. Detect user language and always reply in that same language.
+9. Keep answers concise, professional, and clear.
+10. If asked about budget/price/timeline, explain that Ghassan accepts reasonable and even low budgets for small-medium AI projects with fast delivery when possible.`;
 
 let userMessageCount = 0;
 let isSending = false;
@@ -30,14 +42,152 @@ function hasArabic(text) {
   return /[\u0600-\u06FF]/.test(text || "");
 }
 
-function getLocalFallbackReply(userText) {
+function isProfessionalTopic(userText) {
+  const text = (userText || "").toLowerCase();
+  const topicKeywords = [
+    "ghassan",
+    "job",
+    "jobs",
+    "work",
+    "career",
+    "professional",
+    "portfolio",
+    "service",
+    "services",
+    "freelance",
+    "website",
+    "websites",
+    "app",
+    "apps",
+    "web3",
+    "blockchain",
+    "crypto",
+    "currency",
+    "currencies",
+    "analysis",
+    "analyst",
+    "python",
+    "programming",
+    "coding",
+    "developer",
+    "develop",
+    "software",
+    "skill",
+    "skills",
+    "experience",
+    "project",
+    "projects",
+    "price",
+    "pricing",
+    "budget",
+    "cost",
+    "salary",
+    "rate",
+    "timeline",
+    "deadline",
+    "fast",
+    "quick",
+    "small",
+    "medium",
+    "contact",
+    "whatsapp",
+    "gmail",
+    "telegram",
+    "journey",
+    "roadmap",
+    "مهنة",
+    "مهني",
+    "مهنتي",
+    "عملي",
+    "شخصي",
+    "شخصية",
+    "وظيفة",
+    "وظايف",
+    "موقعي",
+    "مواقع",
+    "تطبيق",
+    "تطبيقات",
+    "خدمة",
+    "خدمات",
+    "مهارات",
+    "برمجة",
+    "مبرمج",
+    "تطوير",
+    "مطور",
+    "حل المشاكل",
+    "خبرة",
+    "مشروع",
+    "مشاريعي",
+    "سعر",
+    "تكلفة",
+    "راتب",
+    "ميزانية",
+    "وقت",
+    "سريع",
+    "صغير",
+    "متوسط",
+    "ويب3",
+    "بلوك",
+    "عملات",
+    "رقمية",
+    "تحليل",
+    "تواصل",
+    "واتساب",
+    "تيليجرام",
+    "ايميل",
+    "غسان",
+    "يسكن",
+    "اين",
+    "وين",
+    "عمر",
+    "كم",
+  ];
+
+  return topicKeywords.some((keyword) => text.includes(keyword));
+}
+
+function getSavedProfessionalReply(userText) {
   const text = (userText || "").toLowerCase();
   const isArabic = hasArabic(userText);
 
+  // Handle common personal-profile phrasings first.
+  if (
+    text.includes("اين يسكن") ||
+    text.includes("وين يسكن") ||
+    text.includes("يسكن غسان") ||
+    text.includes("where does ghassan live") ||
+    text.includes("where does he live")
+  ) {
+    return isArabic ? "غسان يسكن في لبنان." : "Ghassan lives in Lebanon.";
+  }
+
+  if (
+    text.includes("كم عمر") ||
+    text.includes("عمر غسان") ||
+    text.includes("how old is ghassan") ||
+    text.includes("ghassan age")
+  ) {
+    return isArabic ? "عمر غسان 21 سنة." : "Ghassan is 21 years old.";
+  }
+
   if (text.includes("من هو") || text.includes("who is") || text.includes("ghassan")) {
     return isArabic
-      ? "غسان عبيد طالب تقنية معلومات سنة ثانية في LIU، مهتم بـ Web3 والبلوكتشين، ويعمل على بناء وإدارة مواقع باستخدام أدوات الذكاء الاصطناعي."
-      : "Ghassan Obeid is a Year 2 IT student at LIU, passionate about Web3 and blockchain, and professionally builds and manages websites using AI tools.";
+      ? "غسان عبيد عمره 21 سنة، طالب تقنية معلومات في LIU وغير موظف حالياً. يطوّر مواقع وتطبيقات بتقنيات AI، ويقبل مشاريع صغيرة إلى متوسطة بميزانيات مناسبة وتسليم سريع قدر الإمكان."
+      : "Ghassan Obeid is 21 years old, an IT student at LIU, and currently not employed. He develops websites/apps with AI technologies and accepts small-to-medium projects with reasonable budgets and fast delivery when possible.";
+  }
+
+  if (text.includes("العمر") || text.includes("كم عمرك") || text.includes("عمرك") || text.includes("عمري") || text.includes("age") || text.includes("how old") || text.includes("old are you")) {
+    return isArabic ? "عمري 21 سنة." : "I am 21 years old.";
+  }
+
+  if (text.includes("من وين") || text.includes("وين ساكن") || text.includes("ساكن") || text.includes("سكن") || text.includes("يسكن") || text.includes("location") || text.includes("country") || text.includes("where are you from") || text.includes("where do you live") || text.includes("live")) {
+    return isArabic ? "أنا من لبنان." : "I am from Lebanon.";
+  }
+
+  if (text.includes("بتشتغل") || text.includes("شغل") || text.includes("job") || text.includes("work now") || text.includes("employed")) {
+    return isArabic
+      ? "حالياً أنا غير موظف، وأنا طالب في جامعة LIU."
+      : "I am currently not employed; I am a student at LIU.";
   }
 
   if (text.includes("مهارات") || text.includes("skills") || text.includes("python")) {
@@ -48,8 +198,26 @@ function getLocalFallbackReply(userText) {
 
   if (text.includes("web3") || text.includes("blockchain")) {
     return isArabic
-      ? "غسان يركز حالياً على تعلم برمجة Web3 والعقود الذكية كخطوة نحو بناء DApps بشكل احترافي."
-      : "Ghassan is currently focused on Web3 programming and smart contracts as the next step toward building professional DApps.";
+      ? "غسان مهتم بـ Web3 وتحليل العملات الرقمية، لكن حالياً لا يقدّم خدمة بناء مواقع أو تطبيقات Web3."
+      : "Ghassan is interested in Web3 and digital currency analysis, but he does not currently offer Web3 website/app development.";
+  }
+
+  if (text.includes("ai") || text.includes("ذكاء") || text.includes("app") || text.includes("تطبيق")) {
+    return isArabic
+      ? "غسان يطوّر مواقع وتطبيقات باستخدام الذكاء الاصطناعي، مع تركيز قوي على حل المشاكل وتقديم نتائج عملية للمشاريع."
+      : "Ghassan develops websites and apps using AI, with a strong focus on problem-solving and practical project outcomes.";
+  }
+
+  if (text.includes("سعر") || text.includes("تكلفة") || text.includes("راتب") || text.includes("ميزانية") || text.includes("price") || text.includes("budget") || text.includes("cost") || text.includes("salary") || text.includes("rate") || text.includes("deadline") || text.includes("timeline")) {
+    return isArabic
+      ? "غسان يقبل العمل بميزانية مناسبة حتى لو كانت منخفضة، خصوصا للمشاريع الصغيرة إلى المتوسطة بتقنيات AI، مع تنفيذ سريع قدر الإمكان وسعر مناسب."
+      : "Ghassan accepts reasonable budgets, including lower budgets, especially for small-to-medium AI projects, with fast delivery whenever possible and affordable pricing.";
+  }
+
+  if (text.includes("تحليل") || text.includes("عملات") || text.includes("crypto") || text.includes("currency")) {
+    return isArabic
+      ? "غسان يملك خبرة في تحليل العملات الرقمية ضمن نطاق مهني وتعليمي."
+      : "Ghassan has professional and practical experience in digital currency analysis.";
   }
 
   if (text.includes("تواصل") || text.includes("contact") || text.includes("whatsapp") || text.includes("gmail") || text.includes("telegram")) {
@@ -58,9 +226,7 @@ function getLocalFallbackReply(userText) {
       : "Contact: WhatsApp +961-71094407, Gmail ghassanobeid7@gmail.com, Telegram t.me/GHA_SS_AN";
   }
 
-  return isArabic
-    ? "أنا هنا فقط للحديث عن غسان وخدماته. كيف يمكنني مساعدتك بخصوص ذلك؟"
-    : "I'm only here to talk about Ghassan and his work. How can I help you with that?";
+  return "";
 }
 
 function createMessage(text, type) {
@@ -105,6 +271,20 @@ function setSuggestionsDisabled(disabled) {
     button.disabled = disabled;
     button.setAttribute("aria-disabled", String(disabled));
   });
+}
+
+function setComposerDisabled(disabled) {
+  const input = document.getElementById("chatInput");
+  const sendButton = document.getElementById("chatSendBtn");
+
+  if (input) {
+    input.disabled = disabled;
+  }
+
+  if (sendButton) {
+    sendButton.disabled = disabled;
+    sendButton.setAttribute("aria-disabled", String(disabled));
+  }
 }
 
 function extractGroqText(data) {
@@ -163,10 +343,36 @@ async function sendToAI(userText) {
 
   isSending = true;
   setSuggestionsDisabled(true);
+  setComposerDisabled(true);
   createMessage(userText, "user");
   userMessageCount += 1;
   maybeShowCta();
   setTyping(true);
+
+  const isArabic = hasArabic(userText || "");
+  if (!isProfessionalTopic(userText)) {
+    createMessage(
+      isArabic
+        ? "أنا هنا فقط للحديث عن عمل غسان ومهاراته المهنية."
+        : "I'm only here to discuss Ghassan's professional work and skills.",
+      "bot"
+    );
+    setTyping(false);
+    setSuggestionsDisabled(false);
+    setComposerDisabled(false);
+    isSending = false;
+    return;
+  }
+
+  const savedReply = getSavedProfessionalReply(userText);
+  if (savedReply) {
+    createMessage(savedReply, "bot");
+    setTyping(false);
+    setSuggestionsDisabled(false);
+    setComposerDisabled(false);
+    isSending = false;
+    return;
+  }
 
   try {
     const aiText = await callGroq(userText);
@@ -195,12 +401,18 @@ async function sendToAI(userText) {
     }
 
     createMessage(userFriendly, "bot");
-    createMessage((isArabic ? "رد احتياطي: " : "Fallback reply: ") + getLocalFallbackReply(userText), "bot");
+    const savedFallback = getSavedProfessionalReply(userText);
+    createMessage(
+      (isArabic ? "رد احتياطي: " : "Fallback reply: ") +
+        (savedFallback || (isArabic ? "أنا هنا فقط للحديث عن عمل غسان ومهاراته المهنية." : "I'm only here to discuss Ghassan's professional work and skills.")),
+      "bot"
+    );
     console.error(error);
   } finally {
     setTyping(false);
     isSending = false;
     setSuggestionsDisabled(false);
+    setComposerDisabled(false);
   }
 }
 
@@ -217,6 +429,37 @@ function setupSuggestions() {
         sendToAI(message);
       }
     });
+  });
+}
+
+function setupChatComposer() {
+  const input = document.getElementById("chatInput");
+  const sendButton = document.getElementById("chatSendBtn");
+
+  if (!input || !sendButton) {
+    return;
+  }
+
+  const submitFromInput = () => {
+    if (isSending) {
+      return;
+    }
+
+    const text = (input.value || "").trim();
+    if (!text) {
+      return;
+    }
+
+    input.value = "";
+    sendToAI(text);
+  };
+
+  sendButton.addEventListener("click", submitFromInput);
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      submitFromInput();
+    }
   });
 }
 
@@ -325,10 +568,11 @@ function initChat() {
     return;
   }
 
-  createMessage("Hello, I am Ghassan's AI assistant. Ask me anything about Ghassan's work and Web3 journey.", "bot");
+  createMessage("Hello, I am Ghassan's AI assistant. I can only answer professional questions about Ghassan's work, skills, services, and contact details.", "bot");
 }
 
 setupSuggestions();
+setupChatComposer();
 setupRoadmapModal();
 setupThemeToggle();
 setupFadeIn();
