@@ -1,4 +1,4 @@
-const API_KEY = "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";
+const API_KEY = "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";
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
 
