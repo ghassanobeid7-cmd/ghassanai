@@ -1,15 +1,73 @@
-const PROXY_ENDPOINT = "/api/groq-proxy";
-
-const SYSTEM_PROMPT = `You are an AI assistant for Ghassan Obeid.
-
-Use the following profile as the single source of truth.
-// ... (rest of the system prompt is unchanged)
-- English preferred refusal: "I'm only here to discuss Ghassan's professional work and services."`;
-
 let userMessageCount = 0;
-// ... (rest of the file is unchanged)
+let isSending = false;
+
+function hasArabic(text) {
+  return /[\u0600-\u06FF]/.test(text || "");
+}
+
+function createMessage(text, type) {
+  const chatMessages = document.getElementById("chatMessages");
+  if (!chatMessages) {
+    return;
+  }
+
+  const bubble = document.createElement("div");
+  bubble.className = `message ${type}`;
+  bubble.textContent = text;
+  bubble.dir = hasArabic(text) ? "rtl" : "ltr";
+  chatMessages.appendChild(bubble);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function setTyping(isTyping) {
+  const typingIndicator = document.getElementById("typingIndicator");
+  if (!typingIndicator) {
+    return;
+  }
+  typingIndicator.classList.toggle("hidden", !isTyping);
+}
+
+function maybeShowCta() {
+  const ctaCard = document.getElementById("ctaCard");
+  if (!ctaCard) {
+    return;
+  }
+  if (userMessageCount >= 3) {
+    ctaCard.classList.remove("hidden");
+  }
+}
+
+function setSuggestionsDisabled(disabled) {
+  const suggestions = document.getElementById("suggestions");
+  if (!suggestions) {
+    return;
+  }
+
+  suggestions.querySelectorAll(".suggestion-btn").forEach((button) => {
+    button.disabled = disabled;
+    button.setAttribute("aria-disabled", String(disabled));
+  });
+}
+
+function setComposerDisabled(disabled) {
+  const input = document.getElementById("chatInput");
+  const sendButton = document.getElementById("chatSendBtn");
+
+  if (input) {
+    input.disabled = disabled;
+  }
+
+  if (sendButton) {
+    sendButton.disabled = disabled;
+    sendButton.setAttribute("aria-disabled", String(disabled));
+  }
+}
+
 function extractGroqText(data) {
-// ... (rest of the function is unchanged)
+  const text = data?.choices?.[0]?.message?.content;
+  if (typeof text === "string" && text.trim()) {
+    return text.trim();
+  }
   return "";
 }
 
@@ -18,7 +76,7 @@ async function callGroq(userMessage) {
   const timeoutId = setTimeout(() => controller.abort(), 20000);
 
   try {
-    const response = await fetch(PROXY_ENDPOINT, {
+    const response = await fetch(WORKER_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -33,10 +91,22 @@ async function callGroq(userMessage) {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       const reason = errorData?.error?.status || "REQUEST_FAILED";
-      const message = errorData?.error?.message || `Proxy API error: ${response.status}`;
+      const message = errorData?.error?.message || `Worker API error: ${response.status}`;
       throw new Error(`${reason}: ${message}`);
     }
-// ... (rest of the function is unchanged)
+
+    const data = await response.json();
+    const aiText = extractGroqText(data);
+
+    if (!aiText) {
+      throw new Error("No content returned by the Worker.");
+    }
+
+    return aiText;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 
 async function sendToAI(userText) {
